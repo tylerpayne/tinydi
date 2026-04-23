@@ -1,10 +1,10 @@
 # tinydi
 
-Dependency injection in 180 lines. Annotations, not containers.
+Dead simple dependency injection for python.
 
 ## Just works
 
-Drop in `@singleton` / `@inject` and delete the wiring:
+Drop in `@singleton` / `@inject` and delete the orchestration, lifecycle, and wiring code:
 
 ```diff
 +from tinydi import inject, singleton
@@ -33,84 +33,87 @@ Drop in `@singleton` / `@inject` and delete the wiring:
 
 No `provide()` needed — the cache is process-wide until you scope it.
 
-## Mix injected and regular params
+## Decorators
+
+`@singleton` caches one instance per scope. `@factory` builds a fresh one at each site. `@inject` resolves a function's typed deps on call.
 
 ```python
-@inject
-def get_user(user_id: int, db: Singleton[Database]):
-    return db.query("SELECT * FROM users WHERE id = %s", user_id)
-
-get_user(42)
-```
-
-## Singleton vs Factory
-
-```python
+from tinydi import inject, singleton, factory
 from uuid import uuid4
-
-class RequestId:
-    def __init__(self):
-        self.value = uuid4()
-
-@inject
-def handler(
-    session: Singleton[RequestId],   # same value across the scope
-    op_id:   Factory[RequestId],     # fresh each injection
-):
-    ...
-```
-
-## Mark the class instead
-
-For classes that are always one scope, decorate and drop the brackets:
-
-```python
-from tinydi import singleton, factory
 
 @singleton
 class Database:
-    def __init__(self, config: Singleton[Config]): ...
+    def __init__(self, config: Config): ...
 
 @factory
 class RequestId:
     def __init__(self): self.value = uuid4()
 
 @inject
-def handler(db: Database, req: RequestId):   # no brackets needed
+def handler(db: Database, req: RequestId):
+    # db is cached across calls; req is fresh every time
     ...
 ```
 
-Site annotations still win when both are set — `Singleton[RequestId]` forces singleton even if the class is `@factory`.
+Plain params pass through untouched:
 
-## Override for tests
+```python
+@inject
+def get_user(user_id: int, db: Database):
+    return db.query("SELECT * FROM users WHERE id = %s", user_id)
+
+get_user(42)
+```
+
+## Annotations
+
+For classes you don't own — or to override a class's default scope at one call site — use `Singleton[T]` / `Factory[T]`:
+
+```python
+from tinydi import Singleton, Factory
+
+@inject
+def handler(
+    client: Singleton[ThirdPartyClient],   # cached
+    id_a:   Factory[RequestId],            # fresh
+    id_b:   Factory[RequestId],            # fresh, different instance
+):
+    ...
+```
+
+Site annotations beat class decorators — `Singleton[RequestId]` forces singleton even if `RequestId` is `@factory`.
+
+Undecorated classes without a site annotation are passed through to the caller. Nothing is auto-injected behind your back.
+
+## Providers
+
+Open a scope with `provide()` to override any dep — classes, instances, or factory functions:
 
 ```python
 from tinydi import provide
 
 class FakeDatabase(Database):
-    def __init__(self, config: Singleton[Config]):
+    def __init__(self, config: Config):
         self.fake = True
 
 with provide(Database=FakeDatabase):
-    list_users()   # uses FakeDatabase
+    list_users()                     # uses FakeDatabase
 
 with provide(Config(url="test://")):
-    list_users()   # uses the test config
+    list_users()                     # uses this Config instance
 ```
 
-## Factory functions as providers
+A provider can be a function — its own typed deps get injected too:
 
 ```python
-def make_db(config: Singleton[Config]):
+def make_db(config: Config):
     return PostgresDB(config.url, pool_size=10)
 
 with provide(Database=make_db):
     list_users()
 ```
 
-The function's own `Singleton[]` params are injected.
-
-## Nesting
+Scopes nest:
 
 ```python
 with provide(Config(url="prod")):
@@ -120,13 +123,13 @@ with provide(Config(url="prod")):
     handler()                          # prod again
 ```
 
-## Async
+### Async
 
 ```python
-from tinydi import inject, aprovide, Singleton
+from tinydi import inject, aprovide
 
 @inject
-async def handler(db: Singleton[Database]):
+async def handler(db: Database):
     return await db.fetch_all()
 
 async def main():
@@ -134,17 +137,17 @@ async def main():
         await handler()
 ```
 
-Async provider functions work in async scopes:
+Async provider functions work inside `aprovide`:
 
 ```python
-async def make_pool(config: Singleton[Config]):
+async def make_pool(config: Config):
     return await asyncpg.create_pool(config.url)
 
 async with aprovide(Pool=make_pool):
     await handler()
 ```
 
-## pytest
+### pytest
 
 ```python
 @pytest.fixture
