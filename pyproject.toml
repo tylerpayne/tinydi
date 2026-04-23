@@ -2,6 +2,7 @@
 name = "tinydi"
 version = "0.1.0"
 description = "Dependency injection in 180 lines. Annotations, not containers."
+authors = [{ name = "Tyler Payne", email = "tylerrfpayne@gmail.com" }]
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.9"
