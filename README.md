@@ -1,4 +1,4 @@
-# tinydi
+# diny
 
 Dead simple dependency injection for python.
 
@@ -7,7 +7,7 @@ Dead simple dependency injection for python.
 Drop in `@singleton` / `@inject` and delete the orchestration, lifecycle, and wiring code:
 
 ```diff
-+from tinydi import inject, singleton
++from diny import inject, singleton
 +
 +@singleton
  class Config:
@@ -38,7 +38,7 @@ No `provide()` needed — the cache is process-wide until you scope it.
 `@singleton` caches one instance per scope. `@factory` builds a fresh one at each site. `@inject` resolves a function's typed deps on call.
 
 ```python
-from tinydi import inject, singleton, factory
+from diny import inject, singleton, factory
 from uuid import uuid4
 
 @singleton
@@ -70,7 +70,7 @@ get_user(42)
 For classes you don't own — or to override a class's default scope at one call site — use `Singleton[T]` / `Factory[T]`:
 
 ```python
-from tinydi import Singleton, Factory
+from diny import Singleton, Factory
 
 @inject
 def handler(
@@ -90,7 +90,7 @@ Undecorated classes without a site annotation are passed through to the caller. 
 Open a scope with `provide()` to override any dep — classes, instances, or factory functions:
 
 ```python
-from tinydi import provide
+from diny import provide
 
 class FakeDatabase(Database):
     def __init__(self, config: Config):
@@ -126,7 +126,7 @@ with provide(Config(url="prod")):
 ### Async
 
 ```python
-from tinydi import inject, aprovide
+from diny import inject, aprovide
 
 @inject
 async def handler(db: Database):

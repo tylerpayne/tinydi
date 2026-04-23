@@ -1,7 +1,7 @@
 [project]
-name = "tinydi"
+name = "diny"
 version = "0.1.0"
-description = "Dependency injection in 180 lines. Annotations, not containers."
+description = "Dead simple dependency injection for python."
 authors = [{ name = "Tyler Payne" }]
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -22,7 +22,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-only-include = ["tinydi.py"]
+only-include = ["diny.py"]
 
 [tool.uvr.config]
 workflow_version = "0.29.0"

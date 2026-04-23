@@ -1,5 +1,5 @@
 """
-tinydi — a dead-simple dependency injection library.
+diny — a dead-simple dependency injection library.
 
 Annotation-driven: mark parameters with Singleton[T] to request injection.
 """

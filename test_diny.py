@@ -4,7 +4,7 @@ import asyncio
 
 import pytest
 
-from tinydi import Factory, Singleton, aprovide, factory, inject, provide, singleton
+from diny import Factory, Singleton, aprovide, factory, inject, provide, singleton
 
 
 class Config:
