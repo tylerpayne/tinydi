@@ -1,5 +1,30 @@
 """
-diny — dead-simple dependency injection.
+diny - dead-simple dependency injection.
+
+Mark classes, wire functions, resolve dependencies:
+
+    from diny import singleton, inject, provide
+
+    @singleton
+    class Config:
+        def __init__(self):
+            self.url = "postgres://localhost"
+
+    @singleton
+    class Database:
+        def __init__(self, config: Config):
+            self.conn = connect(config.url)
+
+    @inject
+    def list_users(db: Database):
+        return db.query("SELECT * FROM users")
+
+    list_users()
+
+Override in tests:
+
+    with provide(Config(url="test://")):
+        list_users()
 """
 
 import sys
@@ -30,42 +55,95 @@ _deferred_providers: dict[str, object] = {}
 
 
 class Singleton:
-    """Marker: `Singleton[T]` → one instance per scope (cached)."""
+    """Marker: Singleton[T] - one instance per scope (cached).
+
+    Example::
+
+        @inject
+        def handler(db: Singleton[Database]):
+            ...
+    """
 
     def __class_getitem__(cls, tp):
         return Annotated[tp, cls]
 
 
 class Factory:
-    """Marker: `Factory[T]` → fresh instance at this site (not cached)."""
+    """Marker: Factory[T] - fresh instance at this site (not cached).
+
+    Example::
+
+        @inject
+        def handler(id_a: Factory[RequestId], id_b: Factory[RequestId]):
+            # id_a and id_b are different instances
+            ...
+    """
 
     def __class_getitem__(cls, tp):
         return Annotated[tp, cls]
 
 
 def singleton(cls):
-    """Class decorator: bare references to this class inject as Singleton."""
+    """Class decorator: bare references to this class inject as Singleton.
+
+    Example::
+
+        @singleton
+        class Database:
+            def __init__(self, config: Config): ...
+
+        @inject
+        # no annotation needed
+        def handler(db: Database):
+            ...
+    """
     cls._di_default_scope = "singleton"
     return cls
 
 
 def factory(cls):
-    """Class decorator: bare references to this class inject as Factory."""
+    """Class decorator: bare references to this class inject as Factory.
+
+    Example::
+
+        @factory
+        class RequestId:
+            def __init__(self): self.value = uuid4()
+
+        @inject
+        def handler(a: RequestId, b: RequestId):
+            # a and b are different instances
+            ...
+    """
     cls._di_default_scope = "factory"
     return cls
 
 
 def provider(tp):
-    """Register a function as the default provider for *tp*.
+    """Register a function as the default provider for tp.
 
-    *tp* can be a type or a string name (forward reference). String references
+    tp can be a type or a string name (forward reference). String references
     are resolved lazily the first time the type is requested.
 
     The decorated function's typed parameters are injected automatically.
     Scope (singleton vs factory) is determined by the call site annotation.
-    ``provide()`` overrides ``@provider`` registrations.
+    provide() overrides @provider registrations.
 
-    Raises ``ValueError`` if *tp* already has a registered ``@provider``.
+    Raises ValueError if tp already has a registered @provider.
+
+    Example::
+
+        @provider(Database)
+        def make_database(config: Config):
+            return PostgresDatabase(config.url, pool_size=10)
+
+    Forward reference for use inside a class body::
+
+        class Connection:
+            @provider("Connection")
+            @classmethod
+            def create(cls, config: Config):
+                return cls(config.url)
     """
 
     def decorator(func):
@@ -192,6 +270,15 @@ def inject(func):
 
     Non-injected params are passed through to the caller unchanged.
     Caller-supplied values for injected params take precedence.
+
+    Example::
+
+        @inject
+        def get_user(user_id: int, database: Singleton[Database]):
+            return database.query(user_id)
+
+        # database is resolved automatically
+        get_user(42)
     """
     sig = signature(func)
     injectable = list(_injectable_params(func))
@@ -220,29 +307,54 @@ def inject(func):
 
 
 def resolve(tp):
-    """Return the instance for *tp* within the current scope.
+    """Return the instance for tp within the current scope.
 
-    Accepts bare types, ``Singleton[T]``, or ``Factory[T]``.
-    Bare types use singleton semantics by default.
+    Accepts bare types, Singleton[T], or Factory[T].
+    Bare types respect their @singleton/@factory/@provider registration.
+    Raises TypeError for unregistered types.
+
+    Example::
+
+        with provide():
+            # cached singleton
+            database = resolve(Database)
+            # fresh each call
+            request = resolve(Factory[RequestId])
     """
     info = _unwrap(tp)
     if info is not None:
         real_tp, is_factory = info
         _resolve_deferred(real_tp)
         return _resolve(real_tp, is_factory)
-    _resolve_deferred(tp)
-    return _resolve(tp)
+    if isinstance(tp, type):
+        _resolve_deferred(tp)
+        if tp in _providers or tp in _registry.get():
+            return _resolve(tp)
+    raise TypeError(
+        f"{tp} is not registered; use @singleton, @factory, @provider, or Singleton[T]/Factory[T]"
+    )
 
 
 async def aresolve(tp):
-    """Async variant of :func:`resolve`."""
+    """Async variant of resolve().
+
+    Example::
+
+        async with aprovide():
+            database = await aresolve(Database)
+    """
     info = _unwrap(tp)
     if info is not None:
         real_tp, is_factory = info
         _resolve_deferred(real_tp)
         return await _aresolve(real_tp, is_factory)
-    _resolve_deferred(tp)
-    return await _aresolve(tp)
+    if isinstance(tp, type):
+        _resolve_deferred(tp)
+        if tp in _providers or tp in _registry.get():
+            return await _aresolve(tp)
+    raise TypeError(
+        f"{tp} is not registered; use @singleton, @factory, @provider, or Singleton[T]/Factory[T]"
+    )
 
 
 def _lookup(name):
@@ -265,7 +377,18 @@ def _build_reg(instances, mappings):
 
 @contextmanager
 def provide(*instances, **mappings):
-    """Open a scope with the given dependency registrations."""
+    """Open a scope with the given dependency registrations.
+
+    Example::
+
+        with provide(Config(url="test://")):
+            # uses the test config
+            handler()
+
+        with provide(Database=FakeDatabase):
+            # uses FakeDatabase instead of Database
+            handler()
+    """
     r = _registry.set({**_registry.get(), **_build_reg(instances, mappings)})
     c = _cache.set({})
     try:
@@ -277,7 +400,13 @@ def provide(*instances, **mappings):
 
 @asynccontextmanager
 async def aprovide(*instances, **mappings):
-    """Async variant of provide()."""
+    """Async variant of provide().
+
+    Example::
+
+        async with aprovide(Database=FakeDatabase):
+            await handler()
+    """
     r = _registry.set({**_registry.get(), **_build_reg(instances, mappings)})
     c = _cache.set({})
     try:
