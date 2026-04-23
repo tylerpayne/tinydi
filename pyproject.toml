@@ -13,6 +13,7 @@ dev = [
     "ty>=0.0.32",
     "poethepoet>=0.37.0",
     "pytest>=8.4.2",
+    "pre-commit>=4.2.0",
 ]
 
 [tool.uvr.config]
