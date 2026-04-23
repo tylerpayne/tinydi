@@ -14,8 +14,32 @@ concurrency:
   group: release
   cancel-in-progress: false
 jobs:
+  checks:
+    runs-on: ubuntu-latest
+    if: ${{ !contains(fromJSON(inputs.plan).skip, 'checks') }}
+    steps:
+    - id: checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - id: setup-uv
+      uses: astral-sh/setup-uv@v5
+      with:
+        python-version: ${{ fromJSON(inputs.plan).python_version }}
+    - id: sync
+      name: Install dependencies
+      run: uv sync
+    - id: check
+      name: Lint and type check
+      run: uv run poe check
+    - id: test
+      name: Run tests
+      run: uv run poe test
   validate:
     runs-on: ubuntu-latest
+    if: ${{ always() && !failure() && !cancelled() }}
+    needs:
+    - checks
     steps:
     - id: checkout
       uses: actions/checkout@v4
@@ -66,6 +90,11 @@ jobs:
         name: wheels-${{ join(matrix.runner, '-') }}
         path: dist/*.whl
         if-no-files-found: error
+    - id: test-wheel
+      name: Test installed wheel
+      run: |
+        uv pip install --reinstall dist/*.whl
+        .venv/bin/python -m pytest
   release:
     runs-on: ubuntu-latest
     if: ${{ always() && !failure() && !cancelled() && !contains(fromJSON(inputs.plan).skip, 'release') }}
