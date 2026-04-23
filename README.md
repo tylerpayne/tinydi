@@ -4,47 +4,31 @@ Dependency injection in 180 lines. Annotations, not containers.
 
 ## Just works
 
-Before — manual wiring:
+Drop in `@singleton` / `@inject` and delete the wiring:
 
-```python
-class Config:
-    def __init__(self):
-        self.url = "postgres://localhost"
+```diff
++from tinydi import inject, singleton
++
++@singleton
+ class Config:
+     def __init__(self):
+         self.url = "postgres://localhost"
 
-class Database:
-    def __init__(self, config: Config):
-        self.conn = connect(config.url)
++@singleton
+ class Database:
+     def __init__(self, config: Config):
+         self.conn = connect(config.url)
 
-def list_users(db: Database):
-    return db.query("SELECT * FROM users")
++@inject
+ def list_users(db: Database):
+     return db.query("SELECT * FROM users")
 
-# Lots of lines of orchestration and lifecycle code
-config = ...
-db = ...
-
-list_users(db)
-```
-
-After — drop in `@singleton` / `@inject`:
-
-```python
-from tinydi import inject, singleton
-
-@singleton
-class Config:
-    def __init__(self):
-        self.url = "postgres://localhost"
-
-@singleton
-class Database:
-    def __init__(self, config: Config):
-        self.conn = connect(config.url)
-
-@inject
-def list_users(db: Database):
-    return db.query("SELECT * FROM users")
-
-list_users()   # Config and Database built on first call, cached after
+-# Lots of lines of orchestration and lifecycle code
+-config = ...
+-db = ...
+-
+-list_users(db)
++list_users()   # Config and Database built on first call, cached after
 ```
 
 No `provide()` needed — the cache is process-wide until you scope it.
