@@ -1,5 +1,7 @@
 # diny
 
+[![PyPI](https://img.shields.io/pypi/v/diny)](https://pypi.org/project/diny/)
+
 Dead simple dependency injection for python.
 
 ## Just works
