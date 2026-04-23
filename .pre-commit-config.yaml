@@ -7,6 +7,12 @@ repos:
         entry: bash -c 'cp README.md packages/diny/README.md && git add packages/diny/README.md'
         files: ^README\.md$
         pass_filenames: false
+      - id: no-special-chars
+        name: No special characters in docstrings
+        language: pygrep
+        entry: '[→←—]'
+        types: [python]
+        files: ^packages/
       - id: poe-fix
         name: Fix formatting and code
         language: system

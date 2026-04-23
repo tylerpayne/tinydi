@@ -2,16 +2,20 @@
 
 import asyncio
 
+import pytest
+
 from diny import Factory, Singleton, aresolve, inject, provide, resolve, singleton
 
 
+@singleton
 class Config:
     def __init__(self):
         self.url = "default"
 
 
+@singleton
 class Database:
-    def __init__(self, config: Singleton[Config]):
+    def __init__(self, config: Config):
         self.config = config
 
 
@@ -60,7 +64,7 @@ def test_resolve_singleton_decorated(di):
 
 def test_resolve_matches_inject(di):
     @inject
-    def grab(cfg: Singleton[Config]):
+    def grab(cfg: Config):
         return cfg
 
     assert resolve(Config) is grab()
@@ -123,7 +127,6 @@ def test_resolve_factory_vs_singleton(di):
     s = resolve(Singleton[Config])
     f = resolve(Factory[Config])
     assert s is not f
-    # singleton still cached
     assert resolve(Singleton[Config]) is s
 
 
@@ -149,3 +152,28 @@ def test_aresolve_singleton_annotation():
             assert a is b
 
     asyncio.run(main())
+
+
+# --- Unregistered types ---
+
+
+def test_resolve_unregistered_raises(di):
+    class Plain:
+        pass
+
+    with pytest.raises(TypeError, match="not registered"):
+        resolve(Plain)
+
+
+def test_aresolve_unregistered_raises():
+    class Plain:
+        pass
+
+    async def main():
+        from diny import aprovide
+
+        async with aprovide():
+            await aresolve(Plain)
+
+    with pytest.raises(TypeError, match="not registered"):
+        asyncio.run(main())
