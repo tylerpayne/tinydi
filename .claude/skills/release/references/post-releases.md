@@ -43,7 +43,7 @@ These tags/releases already exist and would conflict:
 To resolve, either:
   1. Use uvr bump --post to publish a post-release
   2. Bump past the conflict:
-     uvr bump --package my-pkg --patch
+     uvr bump --packages my-pkg --patch
 ```
 
 ## Workflow

@@ -71,6 +71,23 @@ def get_user(user_id: int, db: Database):
 get_user(42)
 ```
 
+## Custom providers
+
+For types you don't own or that need custom construction, use `@provider(Type)`:
+
+```python
+from diny import provider
+
+@provider(Database)
+def make_db(config: Config):
+    return PostgresDB(config.url, pool_size=10)
+
+# Now Database is auto-injected using make_db — no provide() needed
+list_users()
+```
+
+The provider function's own typed parameters are injected too. Scope is determined by the call site (`Singleton[T]` / `Factory[T]`), defaulting to singleton. `provide()` overrides `@provider` within its scope.
+
 ## Annotations
 
 For classes you don't own — or to override a class's default scope at one call site — use `Singleton[T]` / `Factory[T]`:
@@ -91,9 +108,9 @@ Site annotations beat class decorators — `Singleton[RequestId]` forces singlet
 
 Undecorated classes without a site annotation are passed through to the caller. Nothing is auto-injected behind your back.
 
-## Providers
+## Scoped overrides
 
-Open a scope with `provide()` to override any dependency — classes, instances, or factory functions:
+Open a scope with `provide()` to override any dependency — classes, instances, or functions. This overrides both `@singleton`/`@factory` and `@provider` registrations within the scope:
 
 ```python
 from diny import provide
@@ -102,23 +119,11 @@ class FakeDatabase(Database):
     def __init__(self, config: Config):
         self.fake = True
 
-# Concrete subclass of type
 with provide(Database=FakeDatabase):
-    list_users()
+    list_users()                     # uses FakeDatabase
 
-# Infer type from instance
 with provide(Config(url="test://")):
-    list_users()
-```
-
-A provider can be a function — its own typed deps get injected too:
-
-```python
-def make_db(config: Config):
-    return PostgresDB(config.url, pool_size=10)
-
-with provide(Database=make_db):
-    list_users()
+    list_users()                     # uses this Config instance
 ```
 
 Scopes nest:

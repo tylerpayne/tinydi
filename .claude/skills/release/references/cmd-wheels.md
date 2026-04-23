@@ -3,9 +3,9 @@
 Download platform-compatible wheels from GitHub releases or CI run artifacts without installing them.
 
 ```bash
-uvr download ORG/REPO/PKG              # latest release
-uvr download ORG/REPO/PKG@1.2.3       # specific version
-uvr download ORG/REPO/PKG --run-id ID  # from CI artifacts
+uvr download PKG --repo ORG/REPO              # latest release
+uvr download PKG --repo ORG/REPO --release-tag PKG/v1.2.3  # specific version
+uvr download PKG --repo ORG/REPO --run-id ID  # from CI artifacts
 ```
 
 ## Flags
@@ -20,7 +20,6 @@ uvr download ORG/REPO/PKG --run-id ID  # from CI artifacts
 
 1. `--run-id` — download from a workflow run's uploaded artifacts
 2. `--release-tag` — download from an explicit GitHub release tag
-3. `@VERSION` in the spec — resolves to tag `PKG/vVERSION`
-4. None of the above — finds the latest release tag for the package
+3. None of the above — finds the latest release tag for the package
 
 Wheels are filtered by platform compatibility before saving.

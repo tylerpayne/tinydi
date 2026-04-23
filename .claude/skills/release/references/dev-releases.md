@@ -19,10 +19,7 @@ uvr release --dev
 Every changed package **must** have a `.devN` version in its pyproject.toml. If any package has a clean version (e.g., `1.2.3` without `.devN`), uvr will error with instructions to fix it:
 
 ```
---dev release requires a .devN version in pyproject.toml, but these packages
-have clean versions: my-pkg
-Fix with:
-  uvr bump --package my-pkg --dev
+Cannot do a dev release from non-dev version: 1.2.3
 ```
 
 ## Version ordering

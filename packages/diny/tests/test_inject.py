@@ -128,3 +128,13 @@ def test_multiple_calls_independent_factories(di):
     f()
     assert len(results) == 3
     assert len(set(id(r) for r in results)) == 3
+
+
+def test_return_annotation_ignored(di):
+    """@inject should skip return type hints and only inject parameters."""
+
+    @inject
+    def f(dep: Singleton[Dep]) -> str:
+        return dep.x
+
+    assert f() == "auto"

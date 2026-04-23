@@ -57,12 +57,12 @@ uvr release
 # → publishes 1.2.3rc0
 
 # Final release
-uvr bump --all --patch
-# pyproject.toml: 1.2.4.dev0
+uvr bump --all --stable
+# pyproject.toml: 1.2.3.dev0
 
 uvr release
-# → publishes 1.2.4
-# → bumps to 1.2.5.dev0
+# → publishes 1.2.3
+# → bumps to 1.2.4.dev0
 ```
 
 ## Kind advancement rules
@@ -86,7 +86,7 @@ Keep iterating on the branch until you're ready for the stable release:
 ```bash
 uvr bump --all --alpha && uvr release   # 1.2.3a0 — stay on branch
 uvr bump --all --rc && uvr release      # 1.2.3rc0 — stay on branch
-uvr bump --all --patch && uvr release   # 1.2.4 — now merge to main
+uvr bump --all --stable && uvr release  # 1.2.3 — now merge to main
 ```
 
 Merge to main only after the stable release.

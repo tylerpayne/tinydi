@@ -5,7 +5,7 @@ description = "Dead simple dependency injection for python."
 authors = [{ name = "Tyler Payne" }]
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 [build-system]
 requires = ["hatchling"]
