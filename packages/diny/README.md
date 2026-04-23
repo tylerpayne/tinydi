@@ -2,11 +2,15 @@
 
 [![PyPI](https://img.shields.io/pypi/v/diny)](https://pypi.org/project/diny/)
 
-Dead simple dependency injection for python.
+Dead simple dependency injection for Python.
+
+```bash
+pip install diny
+```
 
 ## Just works
 
-Drop in `@singleton` / `@inject` and delete the orchestration, lifecycle, and wiring code:
+Drop in `@singleton` / `@inject` and delete your orchestration, lifecycle, and wiring code:
 
 ```diff
 +from diny import inject, singleton
@@ -148,34 +152,3 @@ async def make_pool(config: Config):
 async with aprovide(Pool=make_pool):
     await handler()
 ```
-
-### pytest
-
-```python
-@pytest.fixture
-def di():
-    with provide(Database=FakeDatabase):
-        yield
-
-def test_users(di):
-    list_users()
-```
-
-## Resolution
-
-For a site requesting `T`:
-
-| Registry contains | `Singleton[T]` | `Factory[T]` |
-|---|---|---|
-| nothing | build T, cache | build T |
-| class `C` | build C, cache | build C |
-| callable `f` | call f, cache | call f |
-| instance `i` | return i | build `type(i)` |
-
-## Out of scope
-
-Lifecycle hooks, config loading, named deps, framework glue, string forward refs. Pass resources in, use `with` for cleanup, use real types.
-
-## License
-
-MIT.
