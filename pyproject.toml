@@ -15,6 +15,9 @@ build-backend = "hatchling.build"
 dev = [
     "uv-release; python_version >= '3.11'",
     "pyyaml; python_version >= '3.11'",
+    "ruff>=0.15.11",
+    "ty>=0.0.32",
+    "poethepoet>=0.37.0",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -22,3 +25,22 @@ only-include = ["tinydi.py"]
 
 [tool.uvr.config]
 workflow_version = "0.29.0"
+
+[tool.poe.tasks]
+"fix:formatting" = "ruff format ."
+"fix:code" = "ruff check --fix ."
+"check:code" = "ruff check ."
+"check:types" = "ty check ."
+"test:unit" = "python tests.py"
+
+[tool.poe.tasks.fix]
+sequence = ["fix:formatting", "fix:code"]
+default_item_type = "ref"
+
+[tool.poe.tasks.check]
+sequence = ["check:code", "check:types"]
+default_item_type = "ref"
+
+[tool.poe.tasks.test]
+sequence = ["test:unit"]
+default_item_type = "ref"

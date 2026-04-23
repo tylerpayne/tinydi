@@ -1,4 +1,5 @@
 """Smoke tests for the annotation-based API."""
+
 import asyncio
 from tinydi import inject, provide, aprovide, Singleton, Factory
 
@@ -7,13 +8,16 @@ class Config:
     def __init__(self):
         self.url = "postgres://localhost"
 
+
 class Database:
     def __init__(self, config: Singleton[Config]):
         self.config = config
 
+
 class UserRepo:
     def __init__(self, db: Singleton[Database]):
         self.db = db
+
 
 class OrderRepo:
     def __init__(self, db: Singleton[Database]):
@@ -33,10 +37,12 @@ def with_arg(user_id: int, repo: Singleton[UserRepo]):
 
 counter = {"n": 0}
 
+
 class RequestId:
     def __init__(self):
         counter["n"] += 1
         self.value = counter["n"]
+
 
 @inject
 def two_ids(a: Factory[RequestId], b: Factory[RequestId]):
@@ -45,7 +51,9 @@ def two_ids(a: Factory[RequestId], b: Factory[RequestId]):
 
 # Mixed: one site wants singleton, another wants fresh
 @inject
-def mixed_scope(a: Singleton[RequestId], b: Singleton[RequestId], c: Factory[RequestId]):
+def mixed_scope(
+    a: Singleton[RequestId], b: Singleton[RequestId], c: Factory[RequestId]
+):
     return a.value, b.value, c.value
 
 
@@ -62,10 +70,13 @@ async def ahandler(users: Singleton[UserRepo]):
 
 
 class SelfCycle:
-    def __init__(self, other: "Singleton[SelfCycle]"): self.other = other
+    def __init__(self, other: "Singleton[SelfCycle]"):
+        self.other = other
+
 
 @inject
-def cyclic(x: Singleton[SelfCycle]): return x
+def cyclic(x: Singleton[SelfCycle]):
+    return x
 
 
 def run():
@@ -91,9 +102,11 @@ def run():
     # Factory overrides registered instance: rebuild from the instance's type.
     pre_built = RequestId()
     with provide(pre_built):
+
         @inject
         def grab(x: Singleton[RequestId], y: Factory[RequestId]):
             return x, y
+
         x, y = grab()
         assert x is pre_built, "Singleton should return the registered instance"
         assert y is not pre_built, "Factory should rebuild, not return the instance"
@@ -107,14 +120,18 @@ def run():
     print("  instance override ok")
 
     with provide(Database=FakeDatabase):
+
         @inject
         def check(db: Singleton[Database]):
             return getattr(db, "fake", False)
+
         assert check() is True
     print("  class override ok")
 
-    outer = Config(); outer.url = "outer"
-    inner = Config(); inner.url = "inner"
+    outer = Config()
+    outer.url = "outer"
+    inner = Config()
+    inner.url = "inner"
     with provide(outer):
         with provide(inner):
             assert handler() == "inner"
@@ -124,6 +141,7 @@ def run():
     async def amain():
         async with aprovide():
             return await ahandler()
+
     assert asyncio.run(amain()) == "postgres://localhost"
     print("  async ok")
 
@@ -139,6 +157,7 @@ def run():
     @inject
     def not_injected(x: int):
         return x
+
     with provide():
         assert not_injected(5) == 5
     print("  plain-typed params untouched ok")
@@ -151,9 +170,11 @@ def run():
 
     # Callable provider: zero-arg factory function
     with provide(Config=lambda: Config()):
+
         @inject
         def grab_cfg(c: Singleton[Config]):
             return c
+
         cfg = grab_cfg()
         assert cfg.url == "postgres://localhost"
     print("  zero-arg callable provider ok")
@@ -166,9 +187,11 @@ def run():
         return db
 
     with provide(Database=make_db):
+
         @inject
         def grab_db(db: Singleton[Database]):
             return db
+
         db1 = grab_db()
         db2 = grab_db()
         assert db1 is db2, "singleton: should cache"
@@ -177,6 +200,7 @@ def run():
 
     # Callable provider with Factory at site: called fresh each time
     call_count = {"n": 0}
+
     def make_rid():
         call_count["n"] += 1
         r = RequestId.__new__(RequestId)
@@ -184,9 +208,11 @@ def run():
         return r
 
     with provide(RequestId=make_rid):
+
         @inject
         def two(a: Factory[RequestId], b: Factory[RequestId]):
             return a.value, b.value
+
         va, vb = two()
         assert va != vb, "factory provider should be called twice"
     print("  callable provider honored by Factory ok")
@@ -201,9 +227,11 @@ def run():
 
     async def amain2():
         async with aprovide(Database=make_db_async):
+
             @inject
             async def grab(db: Singleton[Database]):
                 return db
+
             return await grab()
 
     result = asyncio.run(amain2())
@@ -212,9 +240,11 @@ def run():
 
     # Sync path rejects async providers loudly
     with provide(Database=make_db_async):
+
         @inject
         def grab_sync(db: Singleton[Database]):
             return db
+
         try:
             grab_sync()
         except RuntimeError as e:
@@ -232,6 +262,7 @@ def run():
     @factory_decorator
     class Token:
         counter = 0
+
         def __init__(self):
             Token.counter += 1
             self.n = Token.counter
@@ -259,13 +290,16 @@ def run():
     print("  site annotation overrides class decorator ok")
 
     # Undecorated plain type still passes through to caller
-    class Plain: pass
+    class Plain:
+        pass
+
     @inject
     def no_decorator(x: Plain):  # Plain has no @singleton/@factory
         return x
+
     with provide():
         p = Plain()
-        assert no_decorator(p) is p   # caller must supply
+        assert no_decorator(p) is p  # caller must supply
     print("  undecorated bare type still caller-supplied ok")
 
     print("\nall smoke tests passed")

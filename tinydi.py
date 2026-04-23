@@ -3,6 +3,7 @@ tinydi — a dead-simple dependency injection library.
 
 Annotation-driven: mark parameters with Singleton[T] to request injection.
 """
+
 import sys
 import inspect
 from contextvars import ContextVar
@@ -11,8 +12,15 @@ from functools import wraps
 from inspect import signature, iscoroutinefunction
 from typing import Annotated, get_type_hints, get_args
 
-__all__ = ["inject", "provide", "aprovide", "Singleton", "Factory",
-           "singleton", "factory"]
+__all__ = [
+    "inject",
+    "provide",
+    "aprovide",
+    "Singleton",
+    "Factory",
+    "singleton",
+    "factory",
+]
 
 _registry: ContextVar[dict] = ContextVar("registry", default={})
 _cache: ContextVar[dict] = ContextVar("cache", default={})
@@ -20,12 +28,14 @@ _cache: ContextVar[dict] = ContextVar("cache", default={})
 
 class Singleton:
     """Marker: `Singleton[T]` → one instance per scope (cached)."""
+
     def __class_getitem__(cls, tp):
         return Annotated[tp, cls]
 
 
 class Factory:
     """Marker: `Factory[T]` → fresh instance at this site (not cached)."""
+
     def __class_getitem__(cls, tp):
         return Annotated[tp, cls]
 
@@ -142,6 +152,7 @@ def inject(func):
     injectable = list(_injectable_params(func))
 
     if iscoroutinefunction(func):
+
         @wraps(func)
         async def aw(*args, **kwargs):
             given = sig.bind_partial(*args, **kwargs).arguments
@@ -149,6 +160,7 @@ def inject(func):
                 if name not in given and name not in kwargs:
                     kwargs[name] = await _aresolve(tp, is_factory)
             return await func(*args, **kwargs)
+
         return aw
 
     @wraps(func)
@@ -158,6 +170,7 @@ def inject(func):
             if name not in given and name not in kwargs:
                 kwargs[name] = _resolve(tp, is_factory)
         return func(*args, **kwargs)
+
     return w
 
 
