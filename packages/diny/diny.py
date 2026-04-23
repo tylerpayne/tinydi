@@ -1,7 +1,5 @@
 """
-diny — a dead-simple dependency injection library.
-
-Annotation-driven: mark parameters with Singleton[T] to request injection.
+diny — dead-simple dependency injection.
 """
 
 import sys
@@ -20,10 +18,15 @@ __all__ = [
     "Factory",
     "singleton",
     "factory",
+    "provider",
+    "resolve",
+    "aresolve",
 ]
 
 _registry: ContextVar[dict] = ContextVar("registry", default={})
 _cache: ContextVar[dict] = ContextVar("cache", default={})
+_providers: dict = {}
+_deferred_providers: dict[str, object] = {}
 
 
 class Singleton:
@@ -52,6 +55,45 @@ def factory(cls):
     return cls
 
 
+def provider(tp):
+    """Register a function as the default provider for *tp*.
+
+    *tp* can be a type or a string name (forward reference). String references
+    are resolved lazily the first time the type is requested.
+
+    The decorated function's typed parameters are injected automatically.
+    Scope (singleton vs factory) is determined by the call site annotation.
+    ``provide()`` overrides ``@provider`` registrations.
+
+    Raises ``ValueError`` if *tp* already has a registered ``@provider``.
+    """
+
+    def decorator(func):
+        if isinstance(tp, str):
+            if tp in _deferred_providers:
+                raise ValueError(f"Duplicate @provider for {tp!r}")
+            _deferred_providers[tp] = func
+        else:
+            if tp in _providers:
+                raise ValueError(f"Duplicate @provider for {tp.__name__}")
+            _providers[tp] = func
+        return func
+
+    return decorator
+
+
+def _resolve_deferred(tp):
+    """Move any deferred provider matching *tp* into the live registry."""
+    name = tp.__name__
+    if name in _deferred_providers:
+        fn = _deferred_providers.pop(name)
+        if isinstance(fn, classmethod):
+            fn = fn.__get__(None, tp)
+        if tp in _providers:
+            raise ValueError(f"Duplicate @provider for {tp.__name__}")
+        _providers[tp] = fn
+
+
 def _unwrap(hint):
     """Return (type, is_factory) if injected, else None.
 
@@ -72,6 +114,9 @@ def _unwrap(hint):
             return hint, False
         if scope == "factory":
             return hint, True
+        _resolve_deferred(hint)
+        if hint in _providers:
+            return hint, False
     return None
 
 
@@ -101,7 +146,7 @@ def _resolve(tp, is_factory=False, seen=frozenset()):
         return cache[tp]
     if tp in seen:
         raise RuntimeError(f"Circular dependency on {tp.__name__}")
-    target = _registry.get().get(tp, tp)
+    target = _registry.get().get(tp, _providers.get(tp, tp))
     if not isinstance(target, type) and not _is_fn(target):
         # Plain instance.
         if not is_factory:
@@ -125,7 +170,7 @@ async def _aresolve(tp, is_factory=False, seen=frozenset()):
         return cache[tp]
     if tp in seen:
         raise RuntimeError(f"Circular dependency on {tp.__name__}")
-    target = _registry.get().get(tp, tp)
+    target = _registry.get().get(tp, _providers.get(tp, tp))
     if not isinstance(target, type) and not _is_fn(target):
         if not is_factory:
             cache[tp] = target
@@ -172,6 +217,21 @@ def inject(func):
         return func(*args, **kwargs)
 
     return w
+
+
+def resolve(tp):
+    """Return the instance for *tp* within the current scope.
+
+    Uses singleton semantics: the result is cached for the current scope.
+    """
+    _resolve_deferred(tp)
+    return _resolve(tp)
+
+
+async def aresolve(tp):
+    """Async variant of :func:`resolve`."""
+    _resolve_deferred(tp)
+    return await _aresolve(tp)
 
 
 def _lookup(name):

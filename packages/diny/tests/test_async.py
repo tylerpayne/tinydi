@@ -254,3 +254,44 @@ def test_preserves_coroutine_metadata():
 
     assert my_async_func.__name__ == "my_async_func"
     assert my_async_func.__doc__ == "Async docstring."
+
+
+# --- Async circular dependency ---
+
+
+class AsyncSelfRef:
+    def __init__(self, other: "Singleton[AsyncSelfRef]"):
+        self.other = other
+
+
+def test_async_circular_dependency():
+    @inject
+    async def grab(x: Singleton[AsyncSelfRef]):
+        return x
+
+    async def main():
+        async with aprovide():
+            return await grab()
+
+    with pytest.raises(RuntimeError, match="Circular"):
+        asyncio.run(main())
+
+
+# --- Async factory over instance ---
+
+
+def test_async_factory_over_instance():
+    @inject
+    async def grab(c: Factory[Config]):
+        return c
+
+    async def main():
+        original = Config()
+        original.url = "original"
+        async with aprovide(original):
+            c = await grab()
+            return c, original
+
+    c, original = asyncio.run(main())
+    assert c is not original
+    assert isinstance(c, Config)

@@ -50,7 +50,6 @@ uvr bump --all --post        # advance post-release number
 |------|-------------|
 | `--all-packages` | Release all packages, not just changed ones |
 | `--packages PKG...` | Release specific packages |
-| `--python VER` | Python version for CI builds (default: `3.12`) |
 
 ## Dispatch options (CI mode)
 
@@ -75,7 +74,7 @@ uvr bump --all --post        # advance post-release number
 | Flag | Description |
 |------|-------------|
 | `--json` | Print only the plan JSON to stdout and exit |
-| `--workflow-dir DIR` | Workflow directory (default: `.github/workflows`) |
+| `--release-notes PKG NOTES` | Attach release notes to a package. NOTES can be inline text or `@path/to/file.md`. Repeatable for multiple packages. |
 
 ## Common patterns
 

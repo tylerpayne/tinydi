@@ -24,7 +24,7 @@ The working tree must be clean. Run `git status`. If dirty, ask the user whether
 uvr release
 ```
 
-This prints the plan and prompts `Dispatch release? [y/N]`. Decline (`N`) to preview without dispatching. See `references/cmd-release.md` for all flags.
+This prints the plan and prompts `Proceed? [y/N]`. Decline (`N`) to preview without dispatching. See `references/cmd-release.md` for all flags.
 
 Present the output to the user. For each changed package, show:
 - The package name and its new version
@@ -33,7 +33,7 @@ Present the output to the user. For each changed package, show:
 Ask the user whether any packages need a minor bump instead of patch. Patch is the default — bump minor for new features, new public API, or breaking changes:
 
 ```bash
-uvr bump --package <package-name> --minor
+uvr bump --packages <package-name> --minor
 ```
 
 ## 3. Review
@@ -93,7 +93,7 @@ git push -u origin "$(git branch --show-current)"
 uvr release
 ```
 
-When prompted `Dispatch release? [y/N]`, answer `y`.
+When prompted `Proceed? [y/N]`, answer `y`.
 
 If `uvr release` says dependency pins were updated, commit those first and re-run:
 
@@ -166,7 +166,7 @@ User says: "Let's release the new changes"
 1. Verify not on main, create a release branch
 2. Run `uvr release`, decline the prompt — shows `my-lib` is dirty (2 commits: added export, fixed parser)
 3. Present to user: "my-lib will bump 0.2.1 -> 0.2.2 (patch). It has a new public export — should this be a minor bump instead?"
-4. User says "yes, bump minor" — run `uvr bump --package my-lib --minor`
+4. User says "yes, bump minor" — run `uvr bump --packages my-lib --minor`
 5. Review docstrings and docs against current API — new `Parser` class exported but not documented. Fix docs.
 6. Draft release notes: "Added `Parser` class for structured input handling. Fixed crash on empty input." Present to user for approval.
 7. Write approved notes to `.uvr/release-notes/my-lib/0.3.0.md`
@@ -185,7 +185,7 @@ User says: "Let's release the new changes"
 - `references/cmd-skill-init.md` — copy Claude skills into project
 
 **Guides:**
-- `references/pipeline.md` — the three core jobs (build, publish, bump)
+- `references/pipeline.md` — the five core jobs (validate, build, release, publish, bump)
 - `references/release-plan.md` — what the release plan JSON contains
 - `references/custom-jobs.md` — how to add your own jobs to the workflow
 - `references/dev-releases.md` — publishing `.devN` versions for testing

@@ -1,11 +1,11 @@
 [project]
 name = "diny"
-version = "0.1.1.dev0"
+version = "0.2.1.dev0"
 description = "Dead simple dependency injection for python."
 authors = [{ name = "Tyler Payne" }]
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 
 [build-system]
 requires = ["hatchling"]

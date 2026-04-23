@@ -1,5 +1,7 @@
 """Tests for provide(): class overrides, instance overrides, callable providers, nesting."""
 
+import pytest
+
 from diny import Factory, Singleton, inject, provide
 
 
@@ -269,3 +271,10 @@ def test_outer_registration_visible_in_inner():
                 return c
 
             assert grab().url == "outer"
+
+
+def test_string_key_not_found_raises():
+    """provide(SomeString=val) where SomeString isn't a name in any caller frame."""
+    with pytest.raises(NameError):
+        with provide(NoSuchTypeAnywhere=lambda: None):
+            pass
