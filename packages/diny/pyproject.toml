@@ -1,6 +1,6 @@
 [project]
 name = "diny"
-version = "0.2.3.dev0"
+version = "0.3.0.dev0"
 description = "Dead simple dependency injection for python."
 authors = [{ name = "Tyler Payne" }]
 readme = "README.md"
