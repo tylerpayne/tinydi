@@ -278,3 +278,72 @@ def test_string_key_not_found_raises():
     with pytest.raises(NameError):
         with provide(NoSuchTypeAnywhere=lambda: None):
             pass
+
+
+# --- inherit ---
+
+
+def test_inherit_shares_parent_cache():
+    @inject
+    def grab_cfg(c: Singleton[Config]):
+        return c
+
+    @inject
+    def grab_db(db: Singleton[Database]):
+        return db
+
+    with provide():
+        cfg = grab_cfg()
+        db = grab_db()
+
+        with provide(inherit=True):
+            assert grab_cfg() is cfg
+            assert grab_db() is db
+
+
+def test_inherit_false_gets_fresh_cache():
+    @inject
+    def grab(c: Singleton[Config]):
+        return c
+
+    with provide():
+        first = grab()
+
+        with provide(inherit=False):
+            second = grab()
+
+        assert first is not second
+
+
+def test_inherit_override_replaces_one_dep():
+    @inject
+    def grab_cfg(c: Singleton[Config]):
+        return c
+
+    @inject
+    def grab_db(db: Singleton[Database]):
+        return db
+
+    with provide():
+        cfg = grab_cfg()
+        db = grab_db()
+
+        with provide(Database=FakeDatabase, inherit=True):
+            assert grab_cfg() is cfg
+            new_db = grab_db()
+            assert isinstance(new_db, FakeDatabase)
+            assert new_db is not db
+
+
+def test_inherit_default_is_false():
+    @inject
+    def grab(c: Singleton[Config]):
+        return c
+
+    with provide():
+        first = grab()
+
+        with provide():
+            second = grab()
+
+        assert first is not second

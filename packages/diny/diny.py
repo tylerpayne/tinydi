@@ -376,8 +376,12 @@ def _build_reg(instances, mappings):
 
 
 @contextmanager
-def provide(*instances, **mappings):
+def provide(*instances, inherit=False, **mappings):
     """Open a scope with the given dependency registrations.
+
+    When inherit is False (default), the scope starts with a fresh cache.
+    When inherit is True, the parent's cached singletons carry through,
+    so already-built instances are shared rather than rebuilt.
 
     Example::
 
@@ -385,12 +389,19 @@ def provide(*instances, **mappings):
             # uses the test config
             handler()
 
-        with provide(Database=FakeDatabase):
-            # uses FakeDatabase instead of Database
+        with provide(Database=AdminDB, inherit=True):
+            # new database, but keeps the parent's mailer, cache, etc.
             handler()
     """
-    r = _registry.set({**_registry.get(), **_build_reg(instances, mappings)})
-    c = _cache.set({})
+    overrides = _build_reg(instances, mappings)
+    r = _registry.set({**_registry.get(), **overrides})
+    if inherit:
+        cache = {**_cache.get()}
+        for tp in overrides:
+            cache.pop(tp, None)
+    else:
+        cache = {}
+    c = _cache.set(cache)
     try:
         yield
     finally:
@@ -399,7 +410,7 @@ def provide(*instances, **mappings):
 
 
 @asynccontextmanager
-async def aprovide(*instances, **mappings):
+async def aprovide(*instances, inherit=False, **mappings):
     """Async variant of provide().
 
     Example::
@@ -407,8 +418,15 @@ async def aprovide(*instances, **mappings):
         async with aprovide(Database=FakeDatabase):
             await handler()
     """
-    r = _registry.set({**_registry.get(), **_build_reg(instances, mappings)})
-    c = _cache.set({})
+    overrides = _build_reg(instances, mappings)
+    r = _registry.set({**_registry.get(), **overrides})
+    if inherit:
+        cache = {**_cache.get()}
+        for tp in overrides:
+            cache.pop(tp, None)
+    else:
+        cache = {}
+    c = _cache.set(cache)
     try:
         yield
     finally:

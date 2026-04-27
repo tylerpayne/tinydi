@@ -295,3 +295,28 @@ def test_async_factory_over_instance():
     c, original = asyncio.run(main())
     assert c is not original
     assert isinstance(c, Config)
+
+
+# --- aprovide inherit ---
+
+
+def test_aprovide_inherit():
+    @inject
+    async def grab(c: Singleton[Config]):
+        return c
+
+    async def main():
+        async with aprovide():
+            first = await grab()
+
+            async with aprovide(inherit=True):
+                second = await grab()
+
+            async with aprovide(inherit=False):
+                third = await grab()
+
+            return first, second, third
+
+    first, second, third = asyncio.run(main())
+    assert first is second
+    assert first is not third
