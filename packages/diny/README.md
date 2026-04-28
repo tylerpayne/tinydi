@@ -1,15 +1,14 @@
-# diny
-
-[![PyPI](https://img.shields.io/pypi/v/diny)](https://pypi.org/project/diny/)
-
 ```
+diny
        __      
-  .^^^/o_)   Dead simple         
+  .^^^/o_)   dead simple         
  / ____/     dependency injection
-</|_|_|      in Python           
+</|_|_|      in python           
                                  
 $ pip install diny               
 ```
+
+[![PyPI](https://img.shields.io/pypi/v/diny)](https://pypi.org/project/diny/)
 
 ## Works with your existing code
 
